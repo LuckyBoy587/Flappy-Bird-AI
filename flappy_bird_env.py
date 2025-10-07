@@ -30,7 +30,7 @@ class FlappyBirdEnv:
         +0.1: Still alive (small reward for survival)
     """
     
-    def __init__(self, render_mode: bool = True, initial_flap: bool = True):
+    def __init__(self, render_mode: bool = False, initial_flap: bool = True):
         # Game constants (read from config.py when available)
         self.WINDOW_WIDTH = getattr(cfg, 'WINDOW_WIDTH', 288)
         self.WINDOW_HEIGHT = getattr(cfg, 'WINDOW_HEIGHT', 512)
@@ -107,7 +107,7 @@ class FlappyBirdEnv:
     
     def _load_sprites(self):
         """Load all game sprites."""
-        sprite_path = "sprites/"
+        sprite_path = "/Flappy-Bird-AI/sprites/"
         
         # Background
         self.background_sprite = pygame.image.load(f"{sprite_path}background-day.png")
