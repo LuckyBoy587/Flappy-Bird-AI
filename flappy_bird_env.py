@@ -108,7 +108,11 @@ class FlappyBirdEnv:
     def _load_sprites(self):
         """Load all game sprites."""
         sprite_path = "sprites/"
-
+        
+        try:
+            pygame.image.load(f"{sprite_path}background-day.png")
+        except Exception as e:
+            sprite_path = "Flappy-Bird-AI/sprites/"  # try alternative path
         # Background
         self.background_sprite = pygame.image.load(f"{sprite_path}background-day.png")
         
