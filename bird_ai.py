@@ -186,9 +186,11 @@ def train_dqn_vectorized(num_envs: int = 16, render_first: bool = False):
     
     for ep in range(episodes):
         state = vec_env.reset()  # shape (num_envs, state_dim)
-        episode_rewards = np.zeros(num_envs, dtype=float)
+        # Track rewards for each bird's current life (reset when bird dies)
+        current_episode_rewards = np.zeros(num_envs, dtype=float)
+        # Track all completed episode rewards for averaging
+        completed_episode_rewards = []
         episode_steps = 0
-        alive_count = num_envs
         
         for step in range(steps_per_episode):
             # Epsilon-greedy batched action selection
@@ -212,7 +214,12 @@ def train_dqn_vectorized(num_envs: int = 16, render_first: bool = False):
                     next_state[i],
                     bool(dones[i])
                 ))
-                episode_rewards[i] += float(rewards[i])
+                current_episode_rewards[i] += float(rewards[i])
+                
+                # When a bird dies, save its episode reward and reset counter
+                if dones[i]:
+                    completed_episode_rewards.append(current_episode_rewards[i])
+                    current_episode_rewards[i] = 0.0
             
             state = next_state
             episode_steps += 1
@@ -246,19 +253,28 @@ def train_dqn_vectorized(num_envs: int = 16, render_first: bool = False):
             if render_first:
                 vec_env.render()
             
-            # Check if all birds have died (optional early stopping per episode)
-            if np.all(dones):
-                alive_count = 0
-                break
+        # Add any remaining episode rewards that didn't finish
+        for i in range(num_envs):
+            if current_episode_rewards[i] > 0:
+                completed_episode_rewards.append(current_episode_rewards[i])
         
         # Decay exploration rate
         if epsilon > epsilon_min:
             epsilon *= epsilon_decay
         
-        # Calculate statistics
-        avg_reward = episode_rewards.mean()
-        max_reward = episode_rewards.max()
-        min_reward = episode_rewards.min()
+        # Calculate statistics from completed episodes
+        if len(completed_episode_rewards) > 0:
+            avg_reward = np.mean(completed_episode_rewards)
+            max_reward = np.max(completed_episode_rewards)
+            min_reward = np.min(completed_episode_rewards)
+            num_episodes_completed = len(completed_episode_rewards)
+        else:
+            # Fallback if no episodes completed (very rare, early in training)
+            avg_reward = np.mean(current_episode_rewards)
+            max_reward = np.max(current_episode_rewards)
+            min_reward = np.min(current_episode_rewards)
+            num_episodes_completed = 0
+            
         episode_rewards_history.append(avg_reward)
         
         # Track best performance
@@ -271,8 +287,8 @@ def train_dqn_vectorized(num_envs: int = 16, render_first: bool = False):
               f"Avg Reward: {avg_reward:7.2f} | "
               f"Max: {max_reward:7.2f} | "
               f"Min: {min_reward:7.2f} | "
+              f"Completed: {num_episodes_completed:3d} | "
               f"Epsilon: {epsilon:.3f} | "
-              f"Steps: {episode_steps:4d} | "
               f"Memory: {len(memory):5d}")
         
         # Save checkpoint every 50 episodes
