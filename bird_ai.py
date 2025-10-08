@@ -290,17 +290,16 @@ def train_dqn_vectorized(num_envs: int = 16, render_first: bool = False):
             best_avg_reward = avg_reward
             torch.save(nn_model.state_dict(), "dqn_flappy_bird_best.pth")
         
-        # Print progress
-        print(f"Episode {ep + 1:4d}/{episodes} | "
-              f"Avg Reward: {avg_reward:7.2f} | "
-              f"Max: {max_reward:7.2f} | "
-              f"Min: {min_reward:7.2f} | "
-              f"Completed: {num_episodes_completed:3d} | "
-              f"Epsilon: {epsilon:.3f} | "
-              f"Memory: {len(memory):5d}")
-        
         # Save checkpoint every 50 episodes
         if (ep + 1) % 50 == 0:
+            # Print progress
+            print(f"Episode {ep + 1:4d}/{episodes} | "
+                    f"Avg Reward: {avg_reward:7.2f} | "
+                    f"Max: {max_reward:7.2f} | "
+                    f"Min: {min_reward:7.2f} | "
+                    f"Completed: {num_episodes_completed:3d} | "
+                    f"Epsilon: {epsilon:.3f} | "
+                    f"Memory: {len(memory):5d}")
             checkpoint_path = f"dqn_flappy_bird_ep{ep+1}.pth"
             torch.save(nn_model.state_dict(), checkpoint_path)
             print(f"  → Checkpoint saved: {checkpoint_path}")
