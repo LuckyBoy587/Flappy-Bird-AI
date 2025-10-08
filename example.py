@@ -19,7 +19,7 @@ def load_trained_model():
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model = DQN(state_dim, action_dim).to(device)
 
-    model_path = "dqn_flappy_bird.pth"
+    model_path = "dqn_flappy_bird_best.pth"
     if os.path.exists(model_path):
         model.load_state_dict(torch.load(model_path, map_location=device))
         model.eval()

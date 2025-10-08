@@ -107,7 +107,12 @@ class FlappyBirdEnv:
     
     def _load_sprites(self):
         """Load all game sprites."""
-        sprite_path = "Flappy-Bird-AI/sprites/"
+        sprite_path = "sprites/"
+        
+        try:
+            pygame.image.load(f"{sprite_path}background-day.png")
+        except Exception as e:
+            sprite_path = "Flappy-Bird-AI/sprites/"
 
         # Background
         self.background_sprite = pygame.image.load(f"{sprite_path}background-day.png")
@@ -143,6 +148,11 @@ class FlappyBirdEnv:
         Returns:
             Initial state as numpy array
         """
+        # Game state
+        self.score = 0
+        self.done = False
+        self.frame_count = 0
+        
         # Bird state
         self.bird_y = self.WINDOW_HEIGHT // 2
         # Apply an initial flap on reset if configured. This gives the player
@@ -160,25 +170,36 @@ class FlappyBirdEnv:
         # Ground scrolling
         self.base_x = 0
         
-        # Game state
-        self.score = 0
-        self.done = False
-        self.frame_count = 0
-        
-        # Track which pipes have been scored
-        self.scored_pipes = set()
-        
         return self._get_state()
     
     def _generate_pipe(self, x_position: int):
         """
-        Generate a new pipe at the specified x position.
+        Generate a new pipe at the specified x position with varied gap positions.
+        
+        The gap position uses a normal distribution centered around the middle,
+        allowing gaps near the top, bottom, and center. Difficulty increases
+        by expanding the possible range as the score progresses.
         
         Args:
             x_position: Horizontal position for the pipe
         """
-        # Random gap position (top of the gap)
-        gap_y = random.randint(100, self.GROUND_Y - self.PIPE_GAP - 100)
+        # Progressive difficulty: expand the range as score increases
+        spread_factor = min(self.score / 20.0, 1.0)  # Max expansion at score 20
+        
+        min_gap_y = 50 - spread_factor * 30  # From 50 to 20 (allow higher pipes)
+        max_gap_y = self.GROUND_Y - self.PIPE_GAP - 50 + spread_factor * 30  # From 230 to 260 (allow lower pipes)
+        
+        # Center of the current range
+        center = (min_gap_y + max_gap_y) / 2
+        
+        # Standard deviation: allows ~95% of gaps within the range
+        std_dev = (max_gap_y - min_gap_y) / 4
+        
+        # Generate gap position using normal distribution
+        gap_y = int(random.gauss(center, std_dev))
+        
+        # Clamp to the current range
+        gap_y = max(int(min_gap_y), min(gap_y, int(max_gap_y)))
         
         pipe = {
             'x': x_position,
@@ -231,17 +252,18 @@ class FlappyBirdEnv:
         if self.base_x <= -self.base_width:
             self.base_x = 0
         
-        # Check for scoring (passing through pipes)
-        for pipe in self.pipes:
-            if pipe['x'] + self.PIPE_WIDTH < self.BIRD_X and id(pipe) not in self.scored_pipes:
-                self.score += 1
-                reward += 1
-                self.scored_pipes.add(id(pipe))
-        
         # Check collisions
         if self._check_collision():
             self.done = True
             reward = -100
+        
+        # Check for scoring (passing through pipes)
+        if not self.done:
+            for pipe in self.pipes:
+                if not pipe.get('scored', False) and pipe['x'] + self.PIPE_WIDTH < self.BIRD_X:
+                    self.score += 1
+                    reward += 1
+                    pipe['scored'] = True
         
         info = {
             'score': self.score,
@@ -389,12 +411,16 @@ class FlappyBirdEnv:
     
     def _draw_score(self):
         """Draw the current score on the screen."""
-        font = pygame.font.Font(None, 50)
-        score_surface = font.render(str(self.score), True, (255, 255, 255))
+        score_str = str(self.score)
+        digits = len(score_str)
+        # Scale font size down for larger scores to prevent overflow
+        font_size = max(30, 50 - (digits - 1) * 10)
+        font = pygame.font.Font(None, font_size)
+        score_surface = font.render(score_str, True, (255, 255, 255))
         score_rect = score_surface.get_rect(center=(self.WINDOW_WIDTH // 2, 50))
         
         # Draw shadow for better visibility
-        shadow_surface = font.render(str(self.score), True, (0, 0, 0))
+        shadow_surface = font.render(score_str, True, (0, 0, 0))
         shadow_rect = shadow_surface.get_rect(center=(self.WINDOW_WIDTH // 2 + 2, 52))
         
         self.screen.blit(shadow_surface, shadow_rect)
