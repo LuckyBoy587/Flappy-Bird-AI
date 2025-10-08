@@ -107,7 +107,7 @@ class FlappyBirdEnv:
     
     def _load_sprites(self):
         """Load all game sprites."""
-        sprite_path = "Flappy-Bird-AI/sprites/"
+        sprite_path = "sprites/"
 
         # Background
         self.background_sprite = pygame.image.load(f"{sprite_path}background-day.png")
@@ -160,13 +160,11 @@ class FlappyBirdEnv:
         # Ground scrolling
         self.base_x = 0
         
-        # Game state
+    # Game state
         self.score = 0
         self.done = False
         self.frame_count = 0
         
-        # Track which pipes have been scored
-        self.scored_pipes = set()
         
         return self._get_state()
     
@@ -233,10 +231,11 @@ class FlappyBirdEnv:
         
         # Check for scoring (passing through pipes)
         for pipe in self.pipes:
-            if pipe['x'] + self.PIPE_WIDTH < self.BIRD_X and id(pipe) not in self.scored_pipes:
+            # Each pipe dict has a 'scored' flag; increment score only once per pipe pair
+            if pipe['x'] + self.PIPE_WIDTH < self.BIRD_X and not pipe.get('scored', False):
                 self.score += 1
                 reward += 1
-                self.scored_pipes.add(id(pipe))
+                pipe['scored'] = True
         
         # Check collisions
         if self._check_collision():

@@ -79,7 +79,7 @@ def run_simple_ai():
         print("The agent flaps when the bird is below the center of the pipe gap.")
     print("Press ESC to quit\n")
     
-    episodes = 10
+    episodes = 1
     best_score = 0
     
     for episode in range(episodes):
