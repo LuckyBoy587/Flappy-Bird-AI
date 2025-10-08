@@ -36,7 +36,7 @@ class DQN(nn.Module):
         self.fc1 = nn.Linear(state_dim, 128)
         self.fc2 = nn.Linear(128, 128)
         self.fc3 = nn.Linear(128, 64)
-        # Output layer
+        # Output layer  
         self.out = nn.Linear(64, action_dim)
         
         # Optional: weight initialization for stability
@@ -78,7 +78,7 @@ def train_dqn():
             
     # --- Training loop ---
     for ep in range(episodes):
-        state, _ = env.reset()
+        state = env.reset()
         done = False
         total_reward = 0
 
