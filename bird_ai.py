@@ -53,9 +53,12 @@ class DQN(nn.Module):
 
 
 def train_dqn():
+    global epsilon
     if nn_model_path and os.path.exists(nn_model_path):
         print(f"Loading model from {nn_model_path}")
-        return torch.load(nn_model_path, map_location=device)
+        nn_model = DQN(state_dim, action_dim).to(device)
+        nn_model.load_state_dict(torch.load(nn_model_path, map_location=device))
+        return nn_model
     nn_model = DQN(state_dim, action_dim).to(device)
     optimizer = optim.Adam(nn_model.parameters(), lr=lr)
     loss_fn = nn.MSELoss()
