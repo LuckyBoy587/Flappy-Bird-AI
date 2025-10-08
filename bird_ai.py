@@ -1,6 +1,7 @@
 from collections import deque
 import os
 import random
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -97,10 +98,10 @@ def train_dqn():
                 batch = random.sample(memory, batch_size)
                 states, actions, rewards, next_states, dones = zip(*batch)
 
-                states = torch.tensor(states, dtype=torch.float32).to(device)
+                states = torch.tensor(np.array(states), dtype=torch.float32).to(device)
                 actions = torch.tensor(actions, dtype=torch.long).unsqueeze(1).to(device)
                 rewards = torch.tensor(rewards, dtype=torch.float32).unsqueeze(1).to(device)
-                next_states = torch.tensor(next_states, dtype=torch.float32).to(device)
+                next_states = torch.tensor(np.array(next_states), dtype=torch.float32).to(device)
                 dones = torch.tensor(dones, dtype=torch.float32).unsqueeze(1).to(device)
 
                 # Current Q-values for actions taken
