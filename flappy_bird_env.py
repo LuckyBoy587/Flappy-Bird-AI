@@ -155,21 +155,22 @@ class FlappyBirdEnv:
             self.bird_velocity = self.FLAP_STRENGTH
         else:
             self.bird_velocity = 0
-        
+
         # Pipes
+        # Ensure frame_count exists before generating initial pipes because
+        # the gap sampling uses it to adjust difficulty/spread over time.
+        self.frame_count = 0
         self.pipes = []
         self._generate_pipe(self.WINDOW_WIDTH)
         self._generate_pipe(self.WINDOW_WIDTH + self.PIPE_SPACING)
-        
+
         # Ground scrolling
         self.base_x = 0
-        
-    # Game state
+
+        # Game state
         self.score = 0
         self.done = False
-        self.frame_count = 0
-        
-        
+
         return self._get_state()
     
     def _generate_pipe(self, x_position: int):
@@ -179,15 +180,72 @@ class FlappyBirdEnv:
         Args:
             x_position: Horizontal position for the pipe
         """
-        # Random gap position (top of the gap)
-        gap_y = random.randint(100, self.GROUND_Y - self.PIPE_GAP - 100)
-        
+        # Random gap position (top of the gap) using a reusable sampler that
+        # produces more varied positions (top / middle / bottom) and slowly
+        # increases the allowed spread as the game progresses.
+        gap_y = self._sample_pipe_gap_top()
+
         pipe = {
             'x': x_position,
             'gap_y': gap_y,  # Top of the gap
             'scored': False
         }
         self.pipes.append(pipe)
+
+    def _sample_pipe_gap_top(self) -> int:
+        """
+        Sample the vertical top coordinate for a pipe gap.
+
+        Behavior:
+        - Chooses one of three modes (top, middle, bottom) so gaps sometimes
+          appear near the top, sometimes near the bottom, and sometimes near
+          the center.
+        - Uses a Gaussian around the chosen mode's center so positions are
+          varied but controllable.
+        - Gradually increases the spread (std-dev) as the game progresses to
+          adjust difficulty. The progression is tied to `self.frame_count`.
+
+        Returns:
+            gap_y (int): y-coordinate of the top of the gap, clamped so the
+                         entire gap remains on screen.
+        """
+        # Safety margin so the pipe always stays fully on screen
+        margin = 20
+        min_top = margin
+        max_top = max(margin, self.GROUND_Y - self.PIPE_GAP - margin)
+
+        # Difficulty factor grows from 0.0 to 1.0 over a short period of play
+        # (e.g., 20 seconds). This controls how much the spread increases.
+        seconds_to_max = max(1.0, 20.0)
+        difficulty = min(1.0, getattr(self, 'frame_count', 0) / (self.FPS * seconds_to_max))
+
+        vertical_range = max_top - min_top
+        # Base and maximum standard deviation (as absolute pixels)
+        base_sigma = max(1.0, vertical_range * 0.05)   # initially narrow
+        max_sigma = max(5.0, vertical_range * 0.45)    # much wider at max difficulty
+        sigma = base_sigma + difficulty * (max_sigma - base_sigma)
+
+        # Mode centers (as gap center, not top)
+        center_min = min_top + self.PIPE_GAP // 2
+        center_max = max_top + self.PIPE_GAP // 2
+        center_range = center_max - center_min
+
+        # pick a mode to bias locations: top / middle / bottom
+        mode = random.choices(['top', 'middle', 'bottom'], weights=[0.25, 0.5, 0.25])[0]
+        if mode == 'top':
+            center_mean = center_min + 0.1 * center_range
+        elif mode == 'bottom':
+            center_mean = center_min + 0.9 * center_range
+        else:
+            center_mean = center_min + 0.5 * center_range
+
+        # Sample gap center and convert to top coordinate
+        gap_center = int(random.gauss(center_mean, sigma))
+        gap_y = gap_center - self.PIPE_GAP // 2
+
+        # Clamp so the full gap remains on screen
+        gap_y = max(min_top, min(gap_y, max_top))
+        return int(gap_y)
     
     def step(self, action: int) -> Tuple[np.ndarray, float, bool, Dict[str, Any]]:
         """
