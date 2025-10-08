@@ -16,7 +16,7 @@ epsilon = 1.0  # exploration probability
 epsilon_min = 0.01
 epsilon_decay = 0.995
 lr = 0.001
-episodes = 200
+episodes = 2000
 batch_size = 64
 memory_size = 2000
 
@@ -81,6 +81,7 @@ def train_dqn():
             
             
     # --- Training loop ---
+    print(f"Starting training for {episodes} episodes...")
     for ep in range(episodes):
         state = env.reset()
         done = False
