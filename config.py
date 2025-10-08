@@ -30,7 +30,7 @@ BASE_VELOCITY = 3  # Scrolling speed of the ground
 
 # Reward settings
 REWARD_ALIVE = 0.1  # Reward per frame for staying alive
-REWARD_PIPE = 1.0  # Reward for passing through a pipe
+REWARD_PIPE = 10.0  # Reward for passing through a pipe
 REWARD_DEATH = -100  # Penalty for collision
 
 # Bird animation
