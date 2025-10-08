@@ -180,12 +180,7 @@ def train_dqn_vectorized(num_envs: int = 16, render_first: bool = False):
     # rendering is not requested. Rendering (pygame window) must run in the
     # main process, so if render_first is True we fall back to the
     # single-process VectorFlappyBirdEnv which can render the first env.
-    if render_first:
-        print("render_first requested: using single-process VectorFlappyBirdEnv to allow rendering")
-        vec_env = VectorFlappyBirdEnv(num_envs=num_envs, render_mode=True, initial_flap=True)
-    else:
-        vec_env = ParallelVectorFlappyBirdEnv(num_envs=num_envs, initial_flap=True)
-    
+    vec_env = VectorFlappyBirdEnv(num_envs=num_envs, render_mode=True, initial_flap=True)
     # Training statistics
     best_avg_reward = -float('inf')
     episode_rewards_history = []
