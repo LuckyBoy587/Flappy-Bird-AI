@@ -18,12 +18,14 @@ epsilon_min = 0.01
 epsilon_decay = 0.995
 lr = 0.001
 episodes = 2000
-batch_size = 64
-memory_size = 2000
+batch_size = 128  # Increased for better GPU utilization
+memory_size = 5000  # Increased for more diverse experiences
 
 # --- Multi-Bird Training Parameters ---
 num_birds = 16  # Number of birds to train simultaneously
-steps_per_episode = 5000  # Max steps per episode for vectorized training
+steps_per_episode = 1000  # Max steps per episode for vectorized training (reduced for speed)
+train_frequency = 4  # Train every N steps (instead of every step)
+num_train_iterations = 1  # Number of training iterations per training step
 
 # --- Environment ---
 env = FlappyBirdEnv(False)
@@ -191,6 +193,7 @@ def train_dqn_vectorized(num_envs: int = 16, render_first: bool = False):
         # Track all completed episode rewards for averaging
         completed_episode_rewards = []
         episode_steps = 0
+        min_episodes_per_round = num_envs * 2  # Each bird should die at least twice
         
         for step in range(steps_per_episode):
             # Epsilon-greedy batched action selection
@@ -224,35 +227,40 @@ def train_dqn_vectorized(num_envs: int = 16, render_first: bool = False):
             state = next_state
             episode_steps += 1
             
-            # Training step - sample from shared replay buffer
-            if len(memory) >= batch_size:
-                batch = random.sample(memory, batch_size)
-                states_b, actions_b, rewards_b, next_states_b, dones_b = zip(*batch)
-                
-                states_b = torch.tensor(np.array(states_b), dtype=torch.float32).to(device)
-                actions_b = torch.tensor(actions_b, dtype=torch.long).unsqueeze(1).to(device)
-                rewards_b = torch.tensor(rewards_b, dtype=torch.float32).unsqueeze(1).to(device)
-                next_states_b = torch.tensor(np.array(next_states_b), dtype=torch.float32).to(device)
-                dones_b = torch.tensor(dones_b, dtype=torch.float32).unsqueeze(1).to(device)
-                
-                # Current Q-values for actions taken
-                q_values = nn_model(states_b).gather(1, actions_b)
-                
-                # Target Q-values (Bellman equation)
-                with torch.no_grad():
-                    q_next = nn_model(next_states_b).max(1)[0].unsqueeze(1)
-                    q_target = rewards_b + gamma * q_next * (1 - dones_b)
-                
-                # Loss & backprop
-                loss = loss_fn(q_values, q_target)
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
+            # Training step - only train every N steps for speed (instead of every step)
+            if len(memory) >= batch_size and step % train_frequency == 0:
+                for _ in range(num_train_iterations):
+                    batch = random.sample(memory, batch_size)
+                    states_b, actions_b, rewards_b, next_states_b, dones_b = zip(*batch)
+                    
+                    states_b = torch.tensor(np.array(states_b), dtype=torch.float32).to(device)
+                    actions_b = torch.tensor(actions_b, dtype=torch.long).unsqueeze(1).to(device)
+                    rewards_b = torch.tensor(rewards_b, dtype=torch.float32).unsqueeze(1).to(device)
+                    next_states_b = torch.tensor(np.array(next_states_b), dtype=torch.float32).to(device)
+                    dones_b = torch.tensor(dones_b, dtype=torch.float32).unsqueeze(1).to(device)
+                    
+                    # Current Q-values for actions taken
+                    q_values = nn_model(states_b).gather(1, actions_b)
+                    
+                    # Target Q-values (Bellman equation)
+                    with torch.no_grad():
+                        q_next = nn_model(next_states_b).max(1)[0].unsqueeze(1)
+                        q_target = rewards_b + gamma * q_next * (1 - dones_b)
+                    
+                    # Loss & backprop
+                    loss = loss_fn(q_values, q_target)
+                    optimizer.zero_grad()
+                    loss.backward()
+                    optimizer.step()
             
             # Optional: render if enabled
             if render_first:
                 vec_env.render()
             
+            # Early stopping: if we have enough completed episodes, stop this round
+            if len(completed_episode_rewards) >= min_episodes_per_round:
+                break
+        
         # Add any remaining episode rewards that didn't finish
         for i in range(num_envs):
             if current_episode_rewards[i] > 0:
