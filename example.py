@@ -5,38 +5,78 @@ This shows the basic usage pattern for integrating with RL algorithms.
 
 from flappy_bird_env import FlappyBirdEnv
 import numpy as np
+import torch
+from bird_ai import DQN
+import os
+
+# Load the trained model
+def load_trained_model():
+    """Load the trained DQN model."""
+    env = FlappyBirdEnv(False)
+    state_dim = env.STATE_COUNT
+    action_dim = env.ACTION_COUNT
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    model = DQN(state_dim, action_dim).to(device)
+
+    model_path = "dqn_flappy_bird.pth"
+    if os.path.exists(model_path):
+        model.load_state_dict(torch.load(model_path, map_location=device))
+        model.eval()
+        print(f"Loaded trained model from {model_path}")
+        return model, device
+    else:
+        print(f"Model file {model_path} not found!")
+        return None, None
+
+# Global model variables
+trained_model, model_device = load_trained_model()
 
 
 def simple_ai_agent(state):
     """
-    A simple rule-based agent that flaps when the bird is below the pipe gap center.
-    
+    AI agent that uses the trained DQN model to predict actions.
+
     Args:
         state: Current state observation
-    
+
     Returns:
         action: 0 (do nothing) or 1 (flap)
     """
-    bird_y = state[0]  # Normalized bird y position
-    pipe_top = state[3]  # Normalized top of pipe gap
-    pipe_bottom = state[4]  # Normalized bottom of pipe gap
-    
-    # Calculate the center of the gap
-    gap_center = (pipe_top + pipe_bottom) / 2
-    
-    # Flap if bird is below the gap center
-    if bird_y > gap_center:
-        return 1  # Flap
-    else:
-        return 0  # Do nothing
+    if trained_model is None:
+        # Fallback to simple rule-based logic if model not loaded
+        bird_y = state[0]  # Normalized bird y position
+        pipe_top = state[3]  # Normalized top of pipe gap
+        pipe_bottom = state[4]  # Normalized bottom of pipe gap
+
+        # Calculate the center of the gap
+        gap_center = (pipe_top + pipe_bottom) / 2
+
+        # Flap if bird is below the gap center
+        if bird_y > gap_center:
+            return 1  # Flap
+        else:
+            return 0  # Do nothing
+
+    # Use trained model for prediction
+    with torch.no_grad():
+        state_tensor = torch.tensor(state, dtype=torch.float32).unsqueeze(0).to(model_device)
+        q_values = trained_model(state_tensor)
+        action = int(torch.argmax(q_values).item())
+
+    return action
 
 
 def run_simple_ai():
-    """Run the game with a simple rule-based AI."""
+    """Run the game with the trained DQN AI."""
     env = FlappyBirdEnv(render_mode=True)
-    
-    print("Running simple AI agent...")
-    print("This agent flaps when the bird is below the center of the pipe gap.")
+
+    if trained_model is not None:
+        print("Running trained DQN AI agent...")
+        print("The agent uses a deep neural network trained with reinforcement learning.")
+    else:
+        print("Running simple rule-based AI agent...")
+        print("The agent flaps when the bird is below the center of the pipe gap.")
     print("Press ESC to quit\n")
     
     episodes = 10

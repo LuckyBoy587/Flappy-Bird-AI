@@ -6,7 +6,7 @@ Modify these parameters to adjust game difficulty and behavior.
 # Window settings
 WINDOW_WIDTH = 288
 WINDOW_HEIGHT = 512
-FPS = 60
+FPS = 60  # Frames per second
 
 # Bird physics
 BIRD_X_POSITION = 50  # Fixed horizontal position of the bird

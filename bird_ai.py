@@ -9,6 +9,7 @@ import torch.nn.functional as F
 
 
 from flappy_bird_env import FlappyBirdEnv
+from vector_env import VectorFlappyBirdEnv
 
 # --- Hyperparameters ---
 gamma = 0.99  # discount factor
@@ -19,6 +20,10 @@ lr = 0.001
 episodes = 2000
 batch_size = 64
 memory_size = 2000
+
+# --- Multi-Bird Training Parameters ---
+num_birds = 16  # Number of birds to train simultaneously
+steps_per_episode = 5000  # Max steps per episode for vectorized training
 
 # --- Environment ---
 env = FlappyBirdEnv(False)
@@ -128,4 +133,167 @@ def train_dqn():
 
     torch.save(nn_model.state_dict(), nn_model_path)
     print(f"Model saved to {nn_model_path}")
+    return nn_model
+
+
+def train_dqn_vectorized(num_envs: int = 16, render_first: bool = False):
+    """
+    Train DQN with multiple birds learning simultaneously.
+    
+    This function trains a single DQN network using experiences from multiple
+    birds running in parallel. All birds share the same network and replay buffer,
+    but explore independently, leading to faster and more diverse learning.
+    
+    Args:
+        num_envs: Number of birds to train simultaneously (default: 16)
+        render_first: If True, render the first bird during training (slower)
+    
+    Returns:
+        Trained DQN model
+    """
+    global epsilon
+    
+    print(f"\n{'='*60}")
+    print(f"MULTI-BIRD TRAINING MODE")
+    print(f"Training with {num_envs} birds simultaneously")
+    print(f"{'='*60}\n")
+    
+    # Check if model exists
+    if nn_model_path and os.path.exists(nn_model_path):
+        print(f"Loading existing model from {nn_model_path}")
+        nn_model = DQN(state_dim, action_dim).to(device)
+        nn_model.load_state_dict(torch.load(nn_model_path, map_location=device))
+        print("Continuing training from loaded model...")
+    else:
+        print("Creating new model...")
+        nn_model = DQN(state_dim, action_dim).to(device)
+    
+    optimizer = optim.Adam(nn_model.parameters(), lr=lr)
+    loss_fn = nn.MSELoss()
+    
+    # Shared replay memory for all birds
+    memory = deque(maxlen=memory_size)
+    
+    # Create vectorized environment
+    vec_env = VectorFlappyBirdEnv(num_envs=num_envs, render_mode=render_first, initial_flap=True)
+    
+    # Training statistics
+    best_avg_reward = -float('inf')
+    episode_rewards_history = []
+    
+    print(f"Starting training for {episodes} episodes...")
+    print(f"Each episode runs up to {steps_per_episode} steps\n")
+    
+    for ep in range(episodes):
+        state = vec_env.reset()  # shape (num_envs, state_dim)
+        episode_rewards = np.zeros(num_envs, dtype=float)
+        episode_steps = 0
+        alive_count = num_envs
+        
+        for step in range(steps_per_episode):
+            # Epsilon-greedy batched action selection
+            if random.random() < epsilon:
+                actions = np.random.choice([0, 1], size=num_envs)
+            else:
+                with torch.no_grad():
+                    state_tensor = torch.tensor(state, dtype=torch.float32).to(device)
+                    q_values = nn_model(state_tensor)  # shape (num_envs, action_dim)
+                    actions = q_values.argmax(dim=1).cpu().numpy()
+            
+            # Execute actions in all environments
+            next_state, rewards, dones, infos = vec_env.step(actions)
+            
+            # Store transitions from all birds into shared memory
+            for i in range(num_envs):
+                memory.append((
+                    state[i],
+                    int(actions[i]),
+                    float(rewards[i]),
+                    next_state[i],
+                    bool(dones[i])
+                ))
+                episode_rewards[i] += float(rewards[i])
+            
+            state = next_state
+            episode_steps += 1
+            
+            # Training step - sample from shared replay buffer
+            if len(memory) >= batch_size:
+                batch = random.sample(memory, batch_size)
+                states_b, actions_b, rewards_b, next_states_b, dones_b = zip(*batch)
+                
+                states_b = torch.tensor(np.array(states_b), dtype=torch.float32).to(device)
+                actions_b = torch.tensor(actions_b, dtype=torch.long).unsqueeze(1).to(device)
+                rewards_b = torch.tensor(rewards_b, dtype=torch.float32).unsqueeze(1).to(device)
+                next_states_b = torch.tensor(np.array(next_states_b), dtype=torch.float32).to(device)
+                dones_b = torch.tensor(dones_b, dtype=torch.float32).unsqueeze(1).to(device)
+                
+                # Current Q-values for actions taken
+                q_values = nn_model(states_b).gather(1, actions_b)
+                
+                # Target Q-values (Bellman equation)
+                with torch.no_grad():
+                    q_next = nn_model(next_states_b).max(1)[0].unsqueeze(1)
+                    q_target = rewards_b + gamma * q_next * (1 - dones_b)
+                
+                # Loss & backprop
+                loss = loss_fn(q_values, q_target)
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+            
+            # Optional: render if enabled
+            if render_first:
+                vec_env.render()
+            
+            # Check if all birds have died (optional early stopping per episode)
+            if np.all(dones):
+                alive_count = 0
+                break
+        
+        # Decay exploration rate
+        if epsilon > epsilon_min:
+            epsilon *= epsilon_decay
+        
+        # Calculate statistics
+        avg_reward = episode_rewards.mean()
+        max_reward = episode_rewards.max()
+        min_reward = episode_rewards.min()
+        episode_rewards_history.append(avg_reward)
+        
+        # Track best performance
+        if avg_reward > best_avg_reward:
+            best_avg_reward = avg_reward
+            torch.save(nn_model.state_dict(), "dqn_flappy_bird_best.pth")
+        
+        # Print progress
+        print(f"Episode {ep + 1:4d}/{episodes} | "
+              f"Avg Reward: {avg_reward:7.2f} | "
+              f"Max: {max_reward:7.2f} | "
+              f"Min: {min_reward:7.2f} | "
+              f"Epsilon: {epsilon:.3f} | "
+              f"Steps: {episode_steps:4d} | "
+              f"Memory: {len(memory):5d}")
+        
+        # Save checkpoint every 50 episodes
+        if (ep + 1) % 50 == 0:
+            checkpoint_path = f"dqn_flappy_bird_ep{ep+1}.pth"
+            torch.save(nn_model.state_dict(), checkpoint_path)
+            print(f"  → Checkpoint saved: {checkpoint_path}")
+            
+            # Print rolling average
+            if len(episode_rewards_history) >= 50:
+                recent_avg = np.mean(episode_rewards_history[-50:])
+                print(f"  → Last 50 episodes avg: {recent_avg:.2f}")
+    
+    # Save final model
+    vec_env.close()
+    torch.save(nn_model.state_dict(), nn_model_path)
+    print(f"\n{'='*60}")
+    print(f"Training completed!")
+    print(f"Final model saved to {nn_model_path}")
+    print(f"Best model saved to dqn_flappy_bird_best.pth")
+    print(f"Best average reward: {best_avg_reward:.2f}")
+    print(f"{'='*60}\n")
+    
     return nn_model
