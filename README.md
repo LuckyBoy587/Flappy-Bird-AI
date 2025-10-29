@@ -2,6 +2,8 @@
 
 A Pygame-based Flappy Bird environment compatible with OpenAI Gym interface, designed for reinforcement learning experiments.
 
+🌐 **[View Project Website](https://luckyboy587.github.io/Flappy-Bird-AI/)**
+
 ## Features
 
 - **Gym-style Interface**: `reset()` and `step()` methods for easy integration with RL algorithms
