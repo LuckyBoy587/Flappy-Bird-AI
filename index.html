@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flappy Bird AI - Deep Learning Game</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        
+        header {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 2rem 0;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        header h1 {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 2rem auto;
+            padding: 0 2rem;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 10px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 2rem;
+        }
+        
+        .card h3 {
+            color: #764ba2;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+        
+        .feature {
+            background: #f8f9fa;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .feature h3 {
+            color: #667eea;
+            margin-top: 0;
+            font-size: 1.3rem;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin-top: 1.5rem;
+        }
+        
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+        
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 1rem;
+            border-radius: 5px;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+        
+        pre code {
+            background: none;
+            color: inherit;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 2rem 0;
+        }
+        
+        .stat {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat h3 {
+            color: white;
+            font-size: 2.5rem;
+            margin: 0;
+        }
+        
+        .stat p {
+            margin: 0.5rem 0 0 0;
+            opacity: 0.9;
+        }
+        
+        footer {
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            text-align: center;
+            padding: 2rem 0;
+            margin-top: 3rem;
+        }
+        
+        ul {
+            margin-left: 2rem;
+            margin-top: 0.5rem;
+        }
+        
+        li {
+            margin: 0.5rem 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>🐦 Flappy Bird AI</h1>
+        <p>Deep Reinforcement Learning meets Classic Gaming</p>
+    </header>
+    
+    <div class="container">
+        <div class="card">
+            <h2>About the Project</h2>
+            <p>
+                Flappy Bird AI is a sophisticated implementation of the classic Flappy Bird game, enhanced with Deep Reinforcement Learning capabilities. 
+                This project combines a Pygame-based environment with state-of-the-art AI training using Deep Q-Networks (DQN).
+            </p>
+            
+            <div class="stats">
+                <div class="stat">
+                    <h3>5</h3>
+                    <p>State Variables</p>
+                </div>
+                <div class="stat">
+                    <h3>2</h3>
+                    <p>Action Space</p>
+                </div>
+                <div class="stat">
+                    <h3>DQN</h3>
+                    <p>Neural Network</p>
+                </div>
+            </div>
+            
+            <div class="buttons">
+                <a href="https://github.com/LuckyBoy587/Flappy-Bird-AI" class="btn">View on GitHub</a>
+                <a href="https://github.com/LuckyBoy587/Flappy-Bird-AI/archive/refs/heads/main.zip" class="btn btn-secondary">Download ZIP</a>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>✨ Features</h2>
+            <div class="features">
+                <div class="feature">
+                    <h3>🎮 Gym-Compatible Environment</h3>
+                    <p>OpenAI Gym-style interface with <code>reset()</code> and <code>step()</code> methods for seamless RL integration.</p>
+                </div>
+                <div class="feature">
+                    <h3>🧠 Deep Q-Network Training</h3>
+                    <p>Implements DQN with experience replay and target networks for stable learning.</p>
+                </div>
+                <div class="feature">
+                    <h3>🚀 Vectorized Training</h3>
+                    <p>Train multiple birds simultaneously for faster convergence and better exploration.</p>
+                </div>
+                <div class="feature">
+                    <h3>🎨 Full Rendering</h3>
+                    <p>Beautiful Pygame graphics with sprite animations and smooth physics simulation.</p>
+                </div>
+                <div class="feature">
+                    <h3>⚙️ Configurable Parameters</h3>
+                    <p>Easily adjust game physics, rewards, and training hyperparameters.</p>
+                </div>
+                <div class="feature">
+                    <h3>📊 Training Analytics</h3>
+                    <p>Monitor learning progress with reward tracking and performance metrics.</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>🚀 Quick Start</h2>
+            
+            <h3>Installation</h3>
+            <pre><code># Clone the repository
+git clone https://github.com/LuckyBoy587/Flappy-Bird-AI.git
+cd Flappy-Bird-AI
+
+# Install dependencies
+pip install -r requirements.txt</code></pre>
+            
+            <h3>Running the Game</h3>
+            <pre><code># Manual play
+python flappy_bird_env.py
+
+# Run trained AI
+python example.py
+
+# Train a new model
+python main.py</code></pre>
+            
+            <h3>Controls</h3>
+            <ul>
+                <li><strong>SPACE</strong> or <strong>UP ARROW</strong> - Flap</li>
+                <li><strong>R</strong> - Reset (when game over)</li>
+                <li><strong>ESC</strong> or <strong>Q</strong> - Quit</li>
+            </ul>
+        </div>
+        
+        <div class="card">
+            <h2>🤖 AI Training</h2>
+            
+            <h3>Single Bird Training</h3>
+            <p>Train a DQN agent using traditional single-environment approach:</p>
+            <pre><code>python main.py
+# Select option 1 for single bird training</code></pre>
+            
+            <h3>Multi-Bird Training (Recommended)</h3>
+            <p>Train with population-based approach for faster learning:</p>
+            <pre><code>python main.py
+# Select option 2 for multi-bird training
+# Specify number of birds (default: 16)</code></pre>
+            
+            <h3>Testing Trained Models</h3>
+            <pre><code>python main.py
+# Select option 3 to test trained models</code></pre>
+        </div>
+        
+        <div class="card">
+            <h2>📋 State Space</h2>
+            <p>The AI observes 5 normalized state variables:</p>
+            <ul>
+                <li><strong>bird_y:</strong> Vertical position of the bird (0-1)</li>
+                <li><strong>bird_velocity:</strong> Vertical velocity (-1 to 1)</li>
+                <li><strong>next_pipe_x:</strong> Horizontal distance to next pipe (0-1)</li>
+                <li><strong>next_pipe_top:</strong> Top of the pipe gap (0-1)</li>
+                <li><strong>next_pipe_bottom:</strong> Bottom of the pipe gap (0-1)</li>
+            </ul>
+        </div>
+        
+        <div class="card">
+            <h2>🎯 Reward System</h2>
+            <ul>
+                <li><strong>+1.0:</strong> Successfully passed through a pipe</li>
+                <li><strong>+0.1:</strong> Survived another frame</li>
+                <li><strong>-100:</strong> Collision with pipe, ground, or ceiling</li>
+            </ul>
+        </div>
+        
+        <div class="card">
+            <h2>🛠️ Technical Details</h2>
+            
+            <h3>Architecture</h3>
+            <ul>
+                <li><strong>Neural Network:</strong> 3-layer fully connected DQN</li>
+                <li><strong>Input Layer:</strong> 5 state variables</li>
+                <li><strong>Hidden Layers:</strong> 64 and 32 neurons with ReLU activation</li>
+                <li><strong>Output Layer:</strong> 2 Q-values (one per action)</li>
+            </ul>
+            
+            <h3>Training Algorithm</h3>
+            <ul>
+                <li><strong>Algorithm:</strong> Deep Q-Network (DQN)</li>
+                <li><strong>Experience Replay:</strong> 10,000 transitions</li>
+                <li><strong>Target Network:</strong> Updated every 100 steps</li>
+                <li><strong>Exploration:</strong> ε-greedy with decay</li>
+            </ul>
+            
+            <h3>Dependencies</h3>
+            <ul>
+                <li><strong>pygame:</strong> Game rendering and physics</li>
+                <li><strong>numpy:</strong> Numerical operations</li>
+                <li><strong>torch:</strong> Deep learning framework</li>
+            </ul>
+        </div>
+        
+        <div class="card">
+            <h2>📚 Documentation</h2>
+            <p>For detailed documentation, see the following files in the repository:</p>
+            <ul>
+                <li><strong>README.md:</strong> General project overview</li>
+                <li><strong>QUICKSTART.md:</strong> Quick start guide for beginners</li>
+                <li><strong>QUICKSTART_MULTIBIRD.md:</strong> Multi-bird training guide</li>
+                <li><strong>IMPLEMENTATION_SUMMARY.md:</strong> Technical implementation details</li>
+                <li><strong>SPEED_OPTIMIZATION.md:</strong> Performance optimization guide</li>
+            </ul>
+        </div>
+        
+        <div class="card">
+            <h2>🤝 Contributing</h2>
+            <p>
+                Contributions are welcome! Feel free to open issues or submit pull requests on 
+                <a href="https://github.com/LuckyBoy587/Flappy-Bird-AI" style="color: #667eea; text-decoration: none; font-weight: bold;">GitHub</a>.
+            </p>
+        </div>
+    </div>
+    
+    <footer>
+        <p>&copy; 2024 Flappy Bird AI Project | Educational and Research Purposes</p>
+        <p style="margin-top: 0.5rem; opacity: 0.8;">Original Flappy Bird game by Dong Nguyen</p>
+    </footer>
+</body>
+</html>
